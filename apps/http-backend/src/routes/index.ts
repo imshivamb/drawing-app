@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 import prisma from '@repo/database/db'
 import {CreateUserSchema, SignInUserSchema, CreateRoomSchema } from '@repo/common/schema'
-import {JWT_SECRET} from '@repo/common-backend/config'
+const { JWT_SECRET } = require('@repo/common-backend/config');
 import { middleware } from '../middleware'
 
 

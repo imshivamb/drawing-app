@@ -15,5 +15,11 @@
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "cn": "^0.1.1",
+    "lucide-react": "^0.473.0",
+    "tailwind-merge": "^2.6.0"
   }
 }
