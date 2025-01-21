@@ -1,4 +1,4 @@
-import Canvas from "@/components/Canvas";
+import RoomCanvas from "@/components/RoomCanvas";
 
 interface RoomPageProps {
   params: {
@@ -9,7 +9,7 @@ const CanvasPage = ({ params }: RoomPageProps) => {
   const roomId = params.roomId;
   console.log(roomId);
 
-  return <Canvas roomId={roomId} />;
+  return <RoomCanvas roomId={roomId} />;
 };
 
 export default CanvasPage;

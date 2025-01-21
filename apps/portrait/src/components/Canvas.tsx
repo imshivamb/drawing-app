@@ -3,11 +3,7 @@ import { initCanvas } from "@/canvas";
 import { Button } from "@repo/ui/button";
 import React, { useEffect, useRef, useState } from "react";
 
-interface CanvasProps {
-  roomId: string;
-}
-
-const Canvas = ({ roomId }: CanvasProps) => {
+const Canvas = ({ roomId, socket }: { roomId: string; socket: WebSocket }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mode, setMode] = useState<"free" | "rect">("free");
 
@@ -18,7 +14,7 @@ const Canvas = ({ roomId }: CanvasProps) => {
     let cleanup: (() => void) | undefined;
 
     const init = async () => {
-      cleanup = await initCanvas(canvas, mode, roomId);
+      cleanup = await initCanvas(canvas, mode, roomId, socket);
     };
 
     init();
@@ -27,7 +23,6 @@ const Canvas = ({ roomId }: CanvasProps) => {
       if (cleanup) cleanup();
     };
   }, [mode, roomId]);
-
   return (
     <div className="relative">
       <div className="absolute top-0 left-0 p-4 z-10 flex gap-3">

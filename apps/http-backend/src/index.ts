@@ -2,6 +2,7 @@ import express from 'express'
 import { Request, Response } from 'express'
 import bodyParser from 'body-parser'
 import jwt from 'jsonwebtoken'
+import cors from 'cors'
 import bcrypt from 'bcrypt'
 import prisma from '@repo/database/db'
 import {CreateUserSchema, SignInUserSchema, CreateRoomSchema } from '@repo/common/schema'
@@ -10,6 +11,12 @@ import { middleware } from './middleware.js'
 
 
 const app = express();
+
+app.use(cors({
+    origin: 'http://localhost:3001',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
+}))
 
 app.use(express.json())
 app.use(bodyParser.json())
@@ -39,7 +46,15 @@ app.post('/register', async (req: Request, res:Response) => {
             JWT_SECRET,
             { expiresIn: '1d' }
         );
-        res.json({token})
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                photo: user.photo
+            }
+        })
     } catch (error) {
         res.status(500).json({ message: "Error creating user" });
     }
