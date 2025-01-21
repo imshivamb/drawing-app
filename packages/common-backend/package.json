@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "exports": {
-    "./config": "./src/config.ts"
+    "./config": "./dist/config.js"
+    
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",

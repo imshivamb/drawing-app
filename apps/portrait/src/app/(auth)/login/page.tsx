@@ -1,3 +1,4 @@
+"use client";
 import { AuthLayout } from "@/components/AuthPage";
 import { Input } from "@repo/ui/input";
 import { Button } from "@repo/ui/button";
