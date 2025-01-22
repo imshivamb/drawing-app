@@ -73,7 +73,10 @@ export default function Register() {
 
     try {
       setLoading(true);
-      const response = await axios.post(`${HTTP_BACKEND}/register`, formData);
+      const response = await axios.post(
+        `${HTTP_BACKEND}/auth/register`,
+        formData
+      );
 
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
