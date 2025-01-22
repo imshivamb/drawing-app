@@ -1,43 +1,21 @@
 "use client";
-import { AuthLayout } from "@/components/AuthPage";
-import { Input } from "@repo/ui/input";
-import { Button } from "@repo/ui/button";
-import { useState } from "react";
+import AuthForm from "@/components/AuthForm";
+import LeftSection from "@/components/LeftSection";
 
 export default function LoginPage() {
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    // Handle login logic here
-    setIsLoading(false);
-  };
-
   return (
-    <AuthLayout
-      title="Welcome Back"
-      description="Sign in to your account to continue"
-    >
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <Input
-          label="Email"
-          type="email"
-          placeholder="Enter your email"
-          required
-          autoComplete="email"
-        />
-        <Input
-          label="Password"
-          type="password"
-          required
-          autoComplete="password"
-          placeholder="Enter your password"
-        />
-        <Button type="submit" isLoading={isLoading}>
-          Sign in
-        </Button>
-      </form>
-    </AuthLayout>
+    <div className="flex min-h-screen">
+      {/* Left Section */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-r from-[#434343] to-black text-white p-12 relative">
+        <LeftSection />
+      </div>
+
+      {/* Right Section */}
+      <div className="w-full lg:!w-1/2 p-8 sm:p-12 flex items-center rounded-l-3xl">
+        <div className="w-full max-w-md mx-auto space-y-8">
+          <AuthForm isLogin={true} />
+        </div>
+      </div>
+    </div>
   );
 }

@@ -66,15 +66,19 @@ function App() {
               >
                 Pricing
               </a>
-              <a
-                href="https://github.com"
+              <Link
+                href="https://github.com/imshivamb/drawing-app"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-gray-600 hover:text-purple-600 transition-colors"
               >
                 <Github className="h-5 w-5" />
-              </a>
-              <button className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-all hover:scale-105">
-                Sign In
-              </button>
+              </Link>
+              <Link href="/login">
+                <button className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-all hover:scale-105">
+                  Sign In
+                </button>
+              </Link>
             </div>
           </div>
         </div>

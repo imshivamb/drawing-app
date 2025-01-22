@@ -1,0 +1,166 @@
+"use client";
+
+import { useState, FormEvent } from "react";
+import Link from "next/link";
+import { z } from "zod";
+import { Input } from "@repo/ui/input";
+import { CreateUserSchema, SignInUserSchema } from "@repo/common/schema";
+import { Button } from "@repo/ui/button";
+import axios from "axios";
+import { HTTP_BACKEND } from "@/config";
+import { useRouter } from "next/navigation";
+
+type FormData = z.infer<typeof CreateUserSchema>;
+
+interface AuthFormProps {
+  isLogin: boolean;
+}
+
+export default function AuthForm({ isLogin }: AuthFormProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState<FormData>({
+    name: "",
+    email: "",
+    password: "",
+  });
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
+    {}
+  );
+
+  const validateForm = () => {
+    try {
+      if (isLogin) {
+        SignInUserSchema.parse(formData);
+      } else {
+        CreateUserSchema.parse(formData);
+      }
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const formErrors: Partial<Record<keyof FormData, string>> = {};
+        error.errors.forEach((err) => {
+          formErrors[err.path[0] as keyof FormData] = err.message;
+        });
+        setErrors(formErrors);
+      }
+      return false;
+    }
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const endpoint = isLogin ? "/auth/login" : "/auth/register";
+      const response = await axios.post(`${HTTP_BACKEND}${endpoint}`, formData);
+
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+      }
+      console.log("Form submitted:", response.data);
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+      });
+      setErrors({});
+      router.push("/dashboard");
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        setErrors({ email: error.response.data.message });
+      } else {
+        setErrors({
+          email: isLogin
+            ? "Login failed. Please try again."
+            : "Registration failed. Please try again.",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <div className="w-full max-w-md mx-auto space-y-8">
+      <div className="text-center">
+        <h2 className="text-4xl font-bold">
+          {isLogin ? "Welcome Back" : "Create an Account"}
+        </h2>
+        <p className="text-gray-600">
+          {isLogin
+            ? "Sign in to your account to continue"
+            : "Get started with your account"}
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {!isLogin && (
+          <div>
+            <Input
+              type="text"
+              placeholder="Name"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className={`w-full px-4 py-3 rounded-lg border ${
+                errors.name ? "border-red-500" : "border-gray-300"
+              } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
+              error={errors.name}
+            />
+          </div>
+        )}
+
+        <div>
+          <Input
+            type="email"
+            placeholder="Email"
+            value={formData.email}
+            onChange={(e) =>
+              setFormData({ ...formData, email: e.target.value })
+            }
+            className={`w-full px-4 py-3 rounded-lg border ${
+              errors.email ? "border-red-500" : "border-gray-300"
+            } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
+            error={errors.email}
+          />
+        </div>
+
+        <div>
+          <Input
+            type="password"
+            placeholder="Password"
+            value={formData.password}
+            onChange={(e) =>
+              setFormData({ ...formData, password: e.target.value })
+            }
+            className={`w-full px-4 py-3 rounded-lg border ${
+              errors.password ? "border-red-500" : "border-gray-300"
+            } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
+            error={errors.password}
+          />
+        </div>
+
+        <Button type="submit" className="w-full" size="lg" isLoading={loading}>
+          {isLogin ? "Sign in" : "Create an Account"}
+        </Button>
+      </form>
+
+      <p className="text-center text-sm text-gray-600">
+        {isLogin ? "Don't have an account? " : "Already have an account? "}
+        <Link
+          href={isLogin ? "/register" : "/login"}
+          className="text-blue-600 hover:underline"
+        >
+          {isLogin ? "Register" : "Log in"}
+        </Link>
+      </p>
+    </div>
+  );
+}
