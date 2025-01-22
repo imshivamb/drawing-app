@@ -1,6 +1,6 @@
 "use client";
 import { Pencil, Users } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const testimonials = [
   {
@@ -25,6 +25,15 @@ const testimonials = [
 
 const LeftSection = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prevSlide) =>
+        prevSlide === testimonials.length - 1 ? 0 : prevSlide + 1
+      );
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
   return (
     <div className="max-w-md mx-auto flex flex-col justify-between h-full">
       <div className="flex items-center absolute top-8 left-8 space-x-2">

@@ -1,6 +1,7 @@
 export type Event = 
     | { type: 'user_joined'; userId: string }
     | { type: 'user_left'; userId: string }
+    | { type: 'user_rejoined'; userId: string }
     | { type: 'shape_updated'; shape: Shape }
     | { type: 'shapes_erased'; shapeIds: string[] }
     | { type: 'cursor_moved'; userId: string; x: number; y: number }

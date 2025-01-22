@@ -14,25 +14,38 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id        String       @id @default(uuid())
+  email     String       @unique
   password  String
   name      String
   photo     String?
   rooms     Room[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  members   RoomMember[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
   chats     Chat[]
 }
 
 model Room {
-  id        String   @id @default(uuid())
-  slug      String   @unique
+  id        String       @id @default(uuid())
+  slug      String       @unique
   adminId   String
-  createdAt DateTime @default(now())
+  isPrivate Boolean      @default(false)
+  createdAt DateTime     @default(now())
   chats     Chat[]
-  admin     User     @relation(fields: [adminId], references: [id])
-  updatedAt DateTime @updatedAt
+  admin     User         @relation(fields: [adminId], references: [id])
+  members   RoomMember[]
+  updatedAt DateTime     @updatedAt
+}
+
+model RoomMember {
+  id       String   @id @default(uuid())
+  roomId   String
+  userId   String
+  role     String   @default("editor") // "admin", "editor", "viewer"
+  room     Room     @relation(fields: [roomId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+  joinedAt DateTime @default(now())
 }
 
 model Chat {
