@@ -1,20 +1,15 @@
 import { type JSX } from "react";
 
-export function Card({
-  className,
-  title,
-  children,
-}: {
+interface CardProps {
   className?: string;
   title: string;
   children: React.ReactNode;
-}): JSX.Element {
+}
+
+export function Card({ className, title, children }: CardProps): JSX.Element {
   return (
-    <a className={className} rel="noopener noreferrer" target="_blank">
-      {/* <h2>
-        {title} <span>-&gt;</span>
-      </h2> */}
-      <p>{children}</p>
-    </a>
+    <div className={`${className} shadow-sm rounded-lg`}>
+      <div className="space-y-4">{children}</div>
+    </div>
   );
 }

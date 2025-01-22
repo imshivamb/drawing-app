@@ -7,11 +7,13 @@
     "./card": "./src/card.tsx",
     "./code": "./src/code.tsx",
     "./utils": "./lib/utils.ts",
-    "./input": "./src/input.tsx"
+    "./input": "./src/input.tsx",
+    "./styles": "./dist/styles.css"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "generate:component": "turbo gen react-component",
+    "build": "tailwindcss -i ./src/styles.css -o ./dist/styles.css",
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
@@ -21,6 +23,9 @@
     "@types/node": "^20.11.24",
     "@types/react": "18.3.0",
     "@types/react-dom": "18.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
     "typescript": "5.5.4"
   },
   "dependencies": {
