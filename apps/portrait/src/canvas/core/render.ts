@@ -18,6 +18,7 @@ export class CanvasRenderer {
             throw new Error('Could not get canvas context');
         }
         this.ctx = context;
+        canvas.style.backgroundColor = '#000000';
         this.viewport = new Viewport(canvas, this.ctx);
         this.grid = new Grid(this.ctx);
         this.history = new HistoryManager();

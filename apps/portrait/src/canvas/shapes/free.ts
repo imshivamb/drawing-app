@@ -6,17 +6,26 @@ export class FreeDraw implements ShapeBehavior {
 
     draw(ctx: CanvasRenderingContext2D): void {
         if (!this.shape.points?.length) return;
-
+    
         ctx.beginPath();
         ctx.strokeStyle = this.shape.strokeColor;
         ctx.lineWidth = this.shape.strokeWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-
+        ctx.globalAlpha = this.shape.opacity;
+    
         ctx.moveTo(this.shape.points[0].x, this.shape.points[0].y);
-        for (let i = 1; i < this.shape.points.length; i++) {
-            ctx.lineTo(this.shape.points[i].x, this.shape.points[i].y);
+        
+        if (this.shape.points.length === 2) {
+            ctx.lineTo(this.shape.points[1].x, this.shape.points[1].y);
+        } else {
+            for (let i = 1; i < this.shape.points.length - 2; i++) {
+                const c = (this.shape.points[i].x + this.shape.points[i + 1].x) / 2;
+                const d = (this.shape.points[i].y + this.shape.points[i + 1].y) / 2;
+                ctx.quadraticCurveTo(this.shape.points[i].x, this.shape.points[i].y, c, d);
+            }
         }
+        
         ctx.stroke();
     }
 

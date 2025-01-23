@@ -92,11 +92,11 @@ export class Viewport {
             y: (point.y - this.offsetY) / this.scale
         };
     }
-
+    
     worldToScreen(point: Point): Point {
         return {
-            x: point.x * this.scale + this.offsetX,
-            y: point.y * this.scale + this.offsetY
+            x: (point.x * this.scale) + this.offsetX,
+            y: (point.y * this.scale) + this.offsetY
         };
     }
 }

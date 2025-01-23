@@ -24,24 +24,55 @@ export type HandlePosition =
     | 'middle-left'
     | null;
 
-export function isPointInShape(point: Point, shape: Shape): boolean {
-    switch(shape.type) {
-        case 'rect':
-            return (
-                point.x >= shape.x &&
-                point.x <= shape.x + shape.width &&
-                point.y >= shape.y &&
-                point.y <= shape.y + shape.height
-            );
-        case 'circle':
-            const dx = point.x - shape.x;
-            const dy = point.y - shape.y;
-            return Math.sqrt(dx * dx + dy * dy) <= shape.radius;
-        // Other shapes later
-        default:
-            return false;
+    export function isPointInShape(point: Point, shape: Shape): boolean {
+        switch(shape.type) {
+            case 'rect':
+                const tolerance = 5;
+                return (
+                    point.x >= shape.x - tolerance &&
+                    point.x <= shape.x + shape.width + tolerance &&
+                    point.y >= shape.y - tolerance &&
+                    point.y <= shape.y + shape.height + tolerance
+                );
+            case 'circle':
+                const dx = point.x - shape.x;
+                const dy = point.y - shape.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return Math.abs(distance - shape.radius) <= 5;
+            case 'line':
+            case 'arrow':
+                if (shape.points?.length >= 2) {
+                    return isPointNearLine(point, shape.points[0], shape.points[1]);
+                }
+                return false;
+            case 'free':
+                if (!shape.points?.length) return false;
+                for (let i = 1; i < shape.points.length; i++) {
+                    if (isPointNearLine(point, shape.points[i-1], shape.points[i])) {
+                        return true;
+                    }
+                }
+                return false;
+            default:
+                return false;
+        }
     }
-}
+
+    function isPointNearLine(point: Point, start: Point, end: Point): boolean {
+        const tolerance = 5;
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        
+        if (length === 0) return false;
+        
+        const t = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / (length * length)));
+        const projectedX = start.x + t * dx;
+        const projectedY = start.y + t * dy;
+        
+        const distanceSquared = Math.pow(point.x - projectedX, 2) + Math.pow(point.y - projectedY, 2);
+        return distanceSquared <= tolerance * tolerance;
+    }
 
 export function getResizeHandleAtPoint(point: Point, shape: Shape, ctx: CanvasRenderingContext2D ): HandlePosition {
     if (!shape.selected) return null;

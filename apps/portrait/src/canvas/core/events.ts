@@ -46,19 +46,40 @@ export class CanvasEventManager {
    }
 
    private getEventPoint(e: MouseEvent): Point {
-       const rect = this.canvas.getBoundingClientRect();
-       const screenPoint = {
-           x: e.clientX - rect.left,
-           y: e.clientY - rect.top
-       };
-       return this.viewport.screenToWorld(screenPoint);
-   }
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = this.canvas.width / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+    
+    return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    };
+}
 
    private handleMouseDown = (e: MouseEvent) => {
        const point = this.getEventPoint(e);
        const snappedPoint = this.grid.snapPoint(point);
        const state = this.stateManager.getState();
        const ctx = this.renderer.getContext();
+
+       if (state.mode === 'free') {
+        state.isDrawing = true;
+        const initialShape = {
+            id: generateId(),
+            type: 'free' as const,
+            points: [snappedPoint],
+            strokeColor: '#FFFFFF',
+            strokeWidth: 2,
+            opacity: 1,
+            x: snappedPoint.x,
+            y: snappedPoint.y,
+            fillColor: 'transparent'
+        };
+        this.stateManager.setSelectedShape(initialShape);
+        this.stateManager.addShape(initialShape);
+        this.history.pushState(state.shapes, initialShape.id);
+        return;
+    }
 
        if (e.button === 1 || (e.button === 0 && e.ctrlKey)) {
            this.viewport.startPan(e);
@@ -120,6 +141,8 @@ export class CanvasEventManager {
        };
 
        switch(mode) {
+            case 'free':
+                return { ...baseShape, type: 'free' as const, points: [point] };
            case 'rect':
                return { ...baseShape, type: 'rect', width: 0, height: 0 };
            case 'circle':
@@ -138,6 +161,16 @@ export class CanvasEventManager {
        const point = this.getEventPoint(e);
        const snappedPoint = this.grid.snapPoint(point);
        const state = this.stateManager.getState();
+
+       if (state.isDrawing && state.selectedShape?.type === 'free') {
+        if (!state.selectedShape.points) {
+            state.selectedShape.points = [];
+        }
+        state.selectedShape.points.push(snappedPoint);
+        this.stateManager.updateShape(state.selectedShape);
+        this.renderer.render(state.shapes);
+        return;
+    }
 
        if (state.mode === 'select' && state.selectedShape) {
            const handle = getResizeHandleAtPoint(snappedPoint, state.selectedShape, this.renderer.getContext());
@@ -181,6 +214,10 @@ export class CanvasEventManager {
        const dy = point.y - this.startY;
 
        switch(shape.type) {
+            case 'free':
+                if (!shape.points) shape.points = [];
+                shape.points.push(point);
+                break;
            case 'rect':
                shape.width = preserveAspectRatio ? 
                    Math.sign(dx) * Math.min(Math.abs(dx), Math.abs(dy)) :
