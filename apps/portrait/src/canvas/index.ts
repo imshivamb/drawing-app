@@ -5,15 +5,25 @@ import { CanvasEventManager } from './core/events';
 import axios from 'axios';
 import { HTTP_BACKEND } from '@/config';
 
+interface CanvasCallbacks {
+    onShapesUpdate: (shapes: Shape[]) => void;
+    onSelectionChange: (shape: Shape | null) => void;
+  }
+
 export async function initCanvas(
     canvas: HTMLCanvasElement, 
     mode: ShapeType | "select", 
     roomId: string, 
-    socket: WebSocket
+    socket: WebSocket,
+    callbacks: CanvasCallbacks
 ) {
     // Initialize core components
     const stateManager = new CanvasStateManager(socket, roomId);
     const renderer = new CanvasRenderer(canvas);
+    stateManager.subscribe({
+        onShapesChange: callbacks.onShapesUpdate,
+        onSelectionChange: callbacks.onSelectionChange
+      });
     const eventManager = new CanvasEventManager(canvas, stateManager, renderer);
 
     // Set initial mode
@@ -22,6 +32,8 @@ export async function initCanvas(
     // Load existing shapes
     const existingShapes = await getExistingShapes(roomId);
     existingShapes.forEach(shape => stateManager.addShape(shape));
+
+    
 
     // Handle WebSocket messages
     socket.onmessage = (event) => {
@@ -45,11 +57,18 @@ export async function initCanvas(
     // Return cleanup function
     return () => {
         eventManager.cleanup();
+        stateManager.cleanup();
     };
 }
 
 async function getExistingShapes(roomId: string): Promise<Shape[]> {
-    const res = await axios.get(`${HTTP_BACKEND}/chats/${roomId}`);
+    const token = localStorage.getItem('token');
+    const res = await axios.get(`${HTTP_BACKEND}/room/chats/${roomId}`, {
+        withCredentials: true,
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
     const messages = res.data.messages;
 
     return messages.map((x: {message: string}) => {

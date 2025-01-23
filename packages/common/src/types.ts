@@ -99,3 +99,11 @@ export type Shape =
   | FreeShape
   | EllipseShape
   | ImageShape;
+
+//   export interface Room {
+//     id: string;
+//     name: string;
+//     createdAt: Date;
+//     userId: string;
+//     users: User[];
+//    }

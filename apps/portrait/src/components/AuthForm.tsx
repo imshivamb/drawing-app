@@ -6,9 +6,8 @@ import { z } from "zod";
 import { Input } from "@repo/ui/input";
 import { CreateUserSchema, SignInUserSchema } from "@repo/common/schema";
 import { Button } from "@repo/ui/button";
-import axios from "axios";
-import { HTTP_BACKEND } from "@/config";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 type FormData = z.infer<typeof CreateUserSchema>;
 
@@ -19,6 +18,7 @@ interface AuthFormProps {
 export default function AuthForm({ isLogin }: AuthFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const { register, login } = useAuth();
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -58,13 +58,12 @@ export default function AuthForm({ isLogin }: AuthFormProps) {
 
     try {
       setLoading(true);
-      const endpoint = isLogin ? "/auth/login" : "/auth/register";
-      const response = await axios.post(`${HTTP_BACKEND}${endpoint}`, formData);
 
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
+      if (isLogin) {
+        await login(formData.email, formData.password);
+      } else {
+        await register(formData.email, formData.password, formData.name);
       }
-      console.log("Form submitted:", response.data);
       setFormData({
         name: "",
         email: "",

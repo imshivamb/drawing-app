@@ -18,6 +18,10 @@ export interface CanvasState {
 
 export class CanvasStateManager {
     private state: CanvasState;
+    private subscribers: {
+        onShapesChange?: (shapes: Shape[]) => void;
+        onSelectionChange?: (shape: Shape | null) => void;
+    } = {};
 
     constructor(socket: WebSocket, roomId: string) {
         this.state = {
@@ -36,23 +40,43 @@ export class CanvasStateManager {
         };
     }
 
+    subscribe(callbacks: {
+        onShapesChange?: (shapes: Shape[]) => void;
+        onSelectionChange?: (shape: Shape | null) => void;
+    }) {
+        this.subscribers = { ...this.subscribers, ...callbacks };
+    }
+
     getState(): CanvasState {
         return this.state;
     }
 
     setState(updates: Partial<CanvasState>) {
+        const prevState = { ...this.state };
         this.state = { ...this.state, ...updates };
+ 
+        if (updates.shapes && this.subscribers.onShapesChange) {
+            this.subscribers.onShapesChange(this.state.shapes);
+        }
+ 
+        if (updates.selectedShape !== undefined && 
+            prevState.selectedShape?.id !== this.state.selectedShape?.id && 
+            this.subscribers.onSelectionChange) {
+            this.subscribers.onSelectionChange(this.state.selectedShape);
+        }
     }
 
     addShape(shape: Shape) {
-        this.state.shapes.push(shape);
+        this.setState({ shapes: [...this.state.shapes, shape] });
         this.broadcastShape(shape);
     }
 
     updateShape(shape: Shape) {
         const index = this.state.shapes.findIndex(s => s.id === shape.id);
         if (index !== -1) {
-            this.state.shapes[index] = shape;
+            const newShapes = [...this.state.shapes];
+            newShapes[index] = shape;
+            this.setState({ shapes: newShapes });
             this.broadcastShape(shape);
         }
     }
@@ -61,25 +85,19 @@ export class CanvasStateManager {
         if (this.state.selectedShape) {
             this.state.selectedShape.selected = false;
         }
-        this.state.selectedShape = shape;
         if (shape) {
             shape.selected = true;
         }
+        this.setState({ selectedShape: shape });
     }
 
     deleteShape(shapeId: string) {
-        this.state.shapes = this.state.shapes.filter(s => s.id !== shapeId);
-        if (this.state.selectedShape?.id === shapeId) {
-            this.setSelectedShape(null);
-        }
-
-        if(this.state.socket) {
-            this.state.socket.send(JSON.stringify({
-                type: 'shape_erased',
-                shapeIds: [shapeId],
-                roomId: this.state.roomId
-            }));
-        }
+        const newShapes = this.state.shapes.filter(s => s.id !== shapeId);
+        this.setState({ 
+            shapes: newShapes,
+            selectedShape: this.state.selectedShape?.id === shapeId ? null : this.state.selectedShape 
+        });
+        this.broadcastDelete(shapeId);
     }
 
     copySelectedShape() {
@@ -102,10 +120,22 @@ export class CanvasStateManager {
     }
 
     bringToFront(shapeId: string) {
-        const index = this.state.shapes.findIndex(s => s.id === shapeId);
-        if(index !== -1) {
-            const [shape] = this.state.shapes.splice(index, 1);
-            this.state.shapes.push(shape);
+        const shape = this.state.shapes.find(s => s.id === shapeId);
+        if (shape) {
+            const newShapes = this.state.shapes.filter(s => s.id !== shapeId);
+            this.setState({ shapes: [...newShapes, shape] });
+            this.broadcastLayerUpdate();
+        }
+    }
+ 
+
+
+
+    sendToBack(shapeId: string) {
+        const shape = this.state.shapes.find(s => s.id === shapeId);
+        if (shape) {
+            const newShapes = this.state.shapes.filter(s => s.id !== shapeId);
+            this.setState({ shapes: [shape, ...newShapes] });
             this.broadcastLayerUpdate();
         }
     }
@@ -113,29 +143,34 @@ export class CanvasStateManager {
     private broadcastShape(shape: Shape) {
         if (this.state.socket) {
             this.state.socket.send(JSON.stringify({
-                type: 'chat',
-                message: JSON.stringify({ shape }),
+                type: 'shape_updated',
+                shape,
                 roomId: this.state.roomId
             }));
         }
     }
-
-    sendToBack(shapeId: string) {
-        const index = this.state.layers.findIndex(s => s.id === shapeId);
-        if (index !== -1) {
-            const [shape] = this.state.layers.splice(index, 1);
-            this.state.layers.unshift(shape);
-            this.broadcastLayerUpdate();
+ 
+    private broadcastDelete(shapeId: string) {
+        if (this.state.socket) {
+            this.state.socket.send(JSON.stringify({
+                type: 'shapes_erased',
+                shapeIds: [shapeId],
+                roomId: this.state.roomId
+            }));
         }
     }
-
+ 
     private broadcastLayerUpdate() {
         if (this.state.socket) {
             this.state.socket.send(JSON.stringify({
                 type: 'layers_updated',
-                layers: this.state.layers,
+                shapes: this.state.shapes,
                 roomId: this.state.roomId
             }));
         }
+    }
+
+    cleanup() {
+        this.subscribers = {};
     }
 }

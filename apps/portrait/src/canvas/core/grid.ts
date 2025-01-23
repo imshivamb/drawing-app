@@ -5,7 +5,7 @@ export class Grid {
     private spacing: number = 20;
     private color: string = '#e0e0e0';
     private enabled: boolean = true;
-    private snap: boolean = false;
+    snap: boolean = false;
 
     constructor(private ctx: CanvasRenderingContext2D) {}
 

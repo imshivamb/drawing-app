@@ -1,41 +1,50 @@
 "use client";
+import React, { useEffect, useRef } from "react";
+import { Toolbar } from "./toolbar";
+import { PropertiesPanel } from "./properties";
+import { useCanvasStore } from "@/store/useCanvasStore";
 import { initCanvas } from "@/canvas";
-import { Button } from "@repo/ui/button";
-import React, { useEffect, useRef, useState } from "react";
 
-const Canvas = ({ roomId, socket }: { roomId: string; socket: WebSocket }) => {
+export const Canvas = ({
+  roomId,
+  socket,
+}: {
+  roomId: string;
+  socket: WebSocket;
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [mode, setMode] = useState<"free" | "rect">("free");
+  const { mode, updateShapes, setSelectedShape } = useCanvasStore();
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let cleanup: (() => void) | undefined;
-
     const init = async () => {
-      cleanup = await initCanvas(canvas, mode, roomId, socket);
+      const cleanup = await initCanvas(canvas, mode, roomId, socket, {
+        onShapesUpdate: updateShapes,
+        onSelectionChange: setSelectedShape,
+      });
+      return cleanup;
     };
 
-    init();
+    const cleanupPromise = init();
 
+    // Cleanup on unmount
     return () => {
-      if (cleanup) cleanup();
+      cleanupPromise.then((cleanup) => cleanup?.());
     };
-  }, [mode, roomId]);
+  }, [mode, roomId, socket]);
+
   return (
-    <div className="relative">
-      <div className="absolute top-0 left-0 p-4 z-10 flex gap-3">
-        <Button size="lg" onClick={() => setMode("free")}>
-          Free Draw
-        </Button>
-        <Button size="lg" onClick={() => setMode("rect")}>
-          Rectangle
-        </Button>
-      </div>
-      <canvas ref={canvasRef} width={1540} height={700}></canvas>
+    <div className="relative w-full h-full">
+      <Toolbar />
+      <PropertiesPanel />
+      <canvas
+        ref={canvasRef}
+        width={1540}
+        height={700}
+        className="w-full h-full"
+      />
     </div>
   );
 };
-
-export default Canvas;

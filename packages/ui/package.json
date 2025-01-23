@@ -8,7 +8,8 @@
     "./code": "./src/code.tsx",
     "./utils": "./lib/utils.ts",
     "./input": "./src/input.tsx",
-    "./styles": "./dist/styles.css"
+    "./styles": "./dist/styles.css",
+    "./modal": "./src/modal.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
@@ -29,6 +30,7 @@
     "typescript": "5.5.4"
   },
   "dependencies": {
+    "lucide-react": "^0.473.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

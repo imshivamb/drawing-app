@@ -4,7 +4,7 @@ export class Viewport {
      scale: number = 1;
      offsetX: number = 0;
      offsetY: number = 0;
-    private isDragging: boolean = false;
+    isDragging: boolean = false;
     private lastX: number = 0;
     private lastY: number = 0;
 
@@ -74,6 +74,16 @@ export class Viewport {
             0, this.scale,
             this.offsetX, this.offsetY
         );
+    }
+
+    startPan(e: MouseEvent) {
+        this.isDragging = true;
+        this.lastX = e.clientX;
+        this.lastY = e.clientY;
+    }
+
+    endPan() {
+        this.isDragging = false;
     }
 
     screenToWorld(point: Point): Point {
