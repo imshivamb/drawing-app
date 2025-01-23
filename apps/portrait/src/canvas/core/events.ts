@@ -5,6 +5,8 @@ import { generateId } from '../utils/shapes';
 import { isPointInShape, getResizeHandleAtPoint, HandlePosition, getResizeCursor } from '../shapes/base';
 import { ResizeTool } from '../tools/resize';
 import { TransformTool } from '../tools/transform';
+import { HistoryManager } from './history';
+import { Grid } from './grid';
 
 export class CanvasEventManager {
     private startX: number = 0;
@@ -13,6 +15,9 @@ export class CanvasEventManager {
     private resizeTool: ResizeTool;
     private transformTool: TransformTool
     private rotationStartPoint: Point | null = null;
+    private history: HistoryManager = new HistoryManager();
+    private grid: Grid;
+
 
     constructor(
         private canvas: HTMLCanvasElement,
@@ -22,6 +27,7 @@ export class CanvasEventManager {
         this.resizeTool = new ResizeTool();
         this.setupEventListeners();
         this.transformTool = new TransformTool(renderer);
+        this.grid = new Grid(renderer.getContext());
     }
 
     private setupEventListeners() {
@@ -250,6 +256,19 @@ export class CanvasEventManager {
                 this.stateManager.bringToFront(state.selectedShape.id);
             } else if (e.ctrlKey && e.key === '[') {
                 this.stateManager.sendToBack(state.selectedShape.id);
+            }
+        }
+        else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            if (e.shiftKey) {
+                this.history.redo(state);
+            } else {
+                this.history.undo(state);
+            }
+        } else if (e.key === 'g') {
+            if (e.shiftKey) {
+                this.grid.toggleSnap();
+            } else {
+                this.grid.toggleGrid();
             }
         }
         this.renderer.render(state.shapes);

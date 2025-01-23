@@ -1,9 +1,15 @@
 import { Shape } from '@repo/common/types';
 import { drawShape } from '../shapes/base';
+import { Viewport } from './viewport';
+import { Grid } from './grid';
+import { HistoryManager } from './history';
 
 export class CanvasRenderer {
     private ctx: CanvasRenderingContext2D;
     private canvas: HTMLCanvasElement;
+    private viewport: Viewport;
+    private grid: Grid;
+    private history: HistoryManager;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -12,6 +18,9 @@ export class CanvasRenderer {
             throw new Error('Could not get canvas context');
         }
         this.ctx = context;
+        this.viewport = new Viewport(canvas, this.ctx);
+        this.grid = new Grid(this.ctx);
+        this.history = new HistoryManager();
     }
     getContext() {
         return this.ctx;
@@ -21,17 +30,22 @@ export class CanvasRenderer {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    render(shapes: Shape[]) {
-        this.clear();
-        shapes.forEach(shape => {
-            drawShape(this.ctx, shape);
-        });
-    }
-
     // Helper method for shape preview during drawing
     drawShapePreview(shape: Shape) {
         this.ctx.save();
         drawShape(this.ctx, shape);
+        this.ctx.restore();
+    }
+
+    render(shapes: Shape[]) {
+        this.ctx.save();
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.viewport.applyTransform();
+        this.grid.draw(this.viewport);
+        
+        shapes.forEach(shape => drawShape(this.ctx, shape));
+        
         this.ctx.restore();
     }
 }
