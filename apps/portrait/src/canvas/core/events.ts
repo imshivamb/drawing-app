@@ -113,7 +113,7 @@ export class CanvasEventManager {
            id: generateId(),
            x: point.x,
            y: point.y,
-           strokeColor: '#000000',
+           strokeColor: '#FFFFFF',
            fillColor: 'transparent',
            strokeWidth: 2,
            opacity: 1
