@@ -3,18 +3,25 @@ import { CanvasStateManager } from './state';
 import { CanvasRenderer } from './render';
 import { generateId } from '../utils/shapes';
 import { isPointInShape, getResizeHandleAtPoint, HandlePosition, getResizeCursor } from '../shapes/base';
+import { ResizeTool } from '../tools/resize';
+import { TransformTool } from '../tools/transform';
 
 export class CanvasEventManager {
     private startX: number = 0;
     private startY: number = 0;
     private selectedHandle: HandlePosition = null;
+    private resizeTool: ResizeTool;
+    private transformTool: TransformTool
+    private rotationStartPoint: Point | null = null;
 
     constructor(
         private canvas: HTMLCanvasElement,
         private stateManager: CanvasStateManager,
         private renderer: CanvasRenderer
     ) {
+        this.resizeTool = new ResizeTool();
         this.setupEventListeners();
+        this.transformTool = new TransformTool(renderer);
     }
 
     private setupEventListeners() {
@@ -22,6 +29,7 @@ export class CanvasEventManager {
         this.canvas.addEventListener('mousemove', this.handleMouseMove);
         this.canvas.addEventListener('mouseup', this.handleMouseUp);
         this.canvas.addEventListener('mouseleave', this.handleMouseUp);
+        this.canvas.addEventListener('keydown', this.handleKeyDown);
     }
 
     private getEventPoint(e: MouseEvent): Point {
@@ -35,14 +43,14 @@ export class CanvasEventManager {
     private handleMouseDown = (e: MouseEvent) => {
         const point = this.getEventPoint(e);
         const state = this.stateManager.getState();
+        const ctx = this.renderer.getContext();
 
         if (state.mode === 'select') {
             if (state.selectedShape) {
-                this.selectedHandle = getResizeHandleAtPoint(point, state.selectedShape);
+                this.selectedHandle = getResizeHandleAtPoint(point, state.selectedShape, ctx);
                 if (this.selectedHandle) {
                     state.isResizing = true;
-                    this.startX = point.x;
-                    this.startY = point.y;
+                    this.resizeTool.startResize(state.selectedShape, this.selectedHandle, point);
                     return;
                 }
             }
@@ -117,6 +125,10 @@ export class CanvasEventManager {
             this.stateManager.setSelectedShape(initialShape);
             this.stateManager.addShape(initialShape);
         }
+        if (e.altKey && state.selectedShape) {
+            state.isRotating = true;
+            this.rotationStartPoint = point;
+        }
 
         this.renderer.render(state.shapes);
     };
@@ -124,18 +136,29 @@ export class CanvasEventManager {
     private handleMouseMove = (e: MouseEvent) => {
         const point = this.getEventPoint(e);
         const state = this.stateManager.getState();
-
+     
+        // Update cursor and handle hover effects
         if (state.mode === 'select' && state.selectedShape) {
-            const handle = getResizeHandleAtPoint(point, state.selectedShape);
+            const handle = getResizeHandleAtPoint(point, state.selectedShape, this.renderer.getContext());
             this.canvas.style.cursor = handle ? 
                 getResizeCursor(handle) : 
                 isPointInShape(point, state.selectedShape) ? 'move' : 'default';
         }
 
+        if (state.isRotating && state.selectedShape && this.rotationStartPoint) {
+            const center = this.transformTool.getShapeCenter(state.selectedShape);
+            const angle = this.transformTool.getRotationAngle(center, this.rotationStartPoint, point);
+            const updatedShape = this.transformTool.rotateShape(state.selectedShape, center, angle);
+            this.stateManager.updateShape(updatedShape);
+            this.rotationStartPoint = point;
+        }
+        // Handle resize
         if (state.isResizing && state.selectedShape) {
-            // Handle resize logic (will be implemented in tools)
-        } else if (state.isDragging && state.selectedShape) {
-            // Handle drag logic
+            const updatedShape = this.resizeTool.resize(state.selectedShape, point, e.shiftKey);
+            this.stateManager.updateShape(updatedShape);
+        } 
+        // Handle dragging
+        else if (state.isDragging && state.selectedShape) {
             const dx = point.x - this.startX;
             const dy = point.y - this.startY;
             
@@ -146,28 +169,57 @@ export class CanvasEventManager {
             this.startY = point.y;
             
             this.stateManager.updateShape(state.selectedShape);
-        } else if (state.isDrawing && state.selectedShape) {
-            // Handle drawing logic
-            const width = point.x - this.startX;
-            const height = point.y - this.startY;
-
-            if (state.selectedShape.type === 'rect') {
-                state.selectedShape.width = width;
-                state.selectedShape.height = height;
-                
-                // Make it a square if shift is held
-                if (e.shiftKey) {
-                    const size = Math.min(Math.abs(width), Math.abs(height));
-                    state.selectedShape.width = width < 0 ? -size : size;
-                    state.selectedShape.height = height < 0 ? -size : size;
-                }
-
-                this.stateManager.updateShape(state.selectedShape);
-            }
         }
-
+        // Handle drawing new shapes 
+        else if (state.isDrawing && state.selectedShape) {
+            const dx = point.x - this.startX;
+            const dy = point.y - this.startY;
+     
+            switch(state.selectedShape.type) {
+                case 'rect':
+                    state.selectedShape.width = dx;
+                    state.selectedShape.height = dy;
+                    if (e.shiftKey) {
+                        const size = Math.min(Math.abs(dx), Math.abs(dy));
+                        state.selectedShape.width = dx < 0 ? -size : size;
+                        state.selectedShape.height = dy < 0 ? -size : size;
+                    }
+                    break;
+     
+                case 'circle':
+                    const radius = Math.sqrt(dx * dx + dy * dy);
+                    state.selectedShape.radius = radius;
+                    break;
+     
+                case 'line':
+                case 'arrow':
+                    if (state.selectedShape.points) {
+                        state.selectedShape.points[1] = point;
+                    }
+                    break;
+     
+                case 'text':
+                    if (state.selectedShape.type === 'text') {
+                        state.selectedShape.x = Math.min(this.startX, point.x);
+                        state.selectedShape.y = Math.min(this.startY, point.y);
+                        if (!state.selectedShape.text) {
+                            state.selectedShape.text = 'Double click to edit';
+                        }
+                    }
+                    break;
+     
+                case 'free':
+                    if (state.selectedShape.points) {
+                        state.selectedShape.points.push(point);
+                    }
+                    break;
+            }
+     
+            this.stateManager.updateShape(state.selectedShape);
+        }
+     
         this.renderer.render(state.shapes);
-    }
+     }
 
     private handleMouseUp = () => {
         const state = this.stateManager.getState();
@@ -178,6 +230,28 @@ export class CanvasEventManager {
         this.selectedHandle = null;
         this.canvas.style.cursor = 'default';
 
+        this.renderer.render(state.shapes);
+    }
+
+    private handleKeyDown = (e: KeyboardEvent) => {
+        const state = this.stateManager.getState();
+
+        if(e.key === 'Delete' && state.selectedShape) {
+            this.stateManager.deleteShape(state.selectedShape.id);
+        } 
+        else if ((e.ctrlKey || e.metaKey) && e.key === 'c' && state.selectedShape) {
+            this.stateManager.copySelectedShape();
+        }
+        else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+            this.stateManager.pasteShape();
+        }
+        else if (state.selectedShape) {
+            if (e.ctrlKey && e.key === ']') {
+                this.stateManager.bringToFront(state.selectedShape.id);
+            } else if (e.ctrlKey && e.key === '[') {
+                this.stateManager.sendToBack(state.selectedShape.id);
+            }
+        }
         this.renderer.render(state.shapes);
     }
 

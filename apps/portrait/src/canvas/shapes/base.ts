@@ -43,11 +43,11 @@ export function isPointInShape(point: Point, shape: Shape): boolean {
     }
 }
 
-export function getResizeHandleAtPoint(point: Point, shape: Shape): HandlePosition {
+export function getResizeHandleAtPoint(point: Point, shape: Shape, ctx: CanvasRenderingContext2D ): HandlePosition {
     if (!shape.selected) return null;
 
     const handleSize = 8;
-    const handlePositions = getHandlePositions(shape);
+    const handlePositions = getHandlePositions(ctx, shape);
 
     for(let i = 0; i < handlePositions.length; i++) {
         const handle = handlePositions[i];
@@ -112,7 +112,39 @@ export function drawShapePath(ctx: CanvasRenderingContext2D, shape: Shape) {
         case 'circle':
             ctx.arc(shape.x, shape.y, shape.radius, 0, Math.PI * 2);
             break;
-        // Will add other shapes here
+        case 'line':
+            if (shape.points && shape.points.length >= 2) {
+                ctx.moveTo(shape.points[0].x, shape.points[0].y);
+                ctx.lineTo(shape.points[1].x, shape.points[1].y);
+            }
+            break;
+        case 'arrow':
+            if (shape.points && shape.points.length >= 2) {
+                ctx.moveTo(shape.points[0].x, shape.points[0].y);
+                ctx.lineTo(shape.points[1].x, shape.points[1].y);
+            }
+            break;
+        case 'text':
+            ctx.font = `${shape.fontSize}px ${shape.fontFamily}`;
+            ctx.fillText(shape.text, shape.x, shape.y);
+            break;
+        case 'free':
+            if (shape.points?.length) {
+                ctx.moveTo(shape.points[0].x, shape.points[0].y);
+                for (let i = 1; i < shape.points.length; i++) {
+                        ctx.lineTo(shape.points[i].x, shape.points[i].y);
+                }
+            }
+            break;
+        case 'image':
+            const img = new Image();
+            img.src = shape.imageUrl;
+            img.onload = () => {
+                ctx.drawImage(img, shape.x, shape.y, shape.width, shape.height);
+            };
+            break;
+        default:
+            throw new Error(`Unsupported shape type: ${shape.type}`);
     }
 }
 
@@ -135,6 +167,25 @@ function drawSelectionBox(ctx: CanvasRenderingContext2D, shape: Shape) {
             );
             drawResizeHandles(ctx, shape);
             break;
+        case 'text':
+            const textWidth = ctx.measureText(shape.text).width;
+            ctx.strokeRect(
+                shape.x - padding,
+                shape.y - shape.fontSize - padding,
+                textWidth + padding * 2,
+                shape.fontSize + padding * 2
+            );
+            drawResizeHandles(ctx, shape);
+            break;
+        case 'image':
+            ctx.strokeRect(
+                shape.x - padding,
+                shape.y - padding,
+                shape.width + padding * 2,
+                shape.height + padding * 2
+            );
+            drawResizeHandles(ctx, shape);
+            break;
         // Will add other shapes
     }
     
@@ -144,7 +195,7 @@ function drawSelectionBox(ctx: CanvasRenderingContext2D, shape: Shape) {
 
 function drawResizeHandles(ctx: CanvasRenderingContext2D, shape: Shape) {
     const handleSize = 8;
-    const handles = getHandlePositions(shape);
+    const handles = getHandlePositions( ctx, shape);
 
     ctx.fillStyle = '#FFFFFF';
     ctx.strokeStyle = '#00A0FF';
@@ -166,20 +217,43 @@ function drawResizeHandles(ctx: CanvasRenderingContext2D, shape: Shape) {
     });
 }
 
-function getHandlePositions(shape: Shape): HandleInfo[] {
+function getHandlePositions(ctx: CanvasRenderingContext2D, shape: Shape): HandleInfo[] {
     switch (shape.type) {
         case 'rect':
             return [
                 { x: shape.x, y: shape.y, position: 'top-left' as HandlePosition },
-                { x: shape.x + shape.width/2, y: shape.y, position: 'top-middle' as HandlePosition },
+                { x: shape.x + shape.width / 2, y: shape.y, position: 'top-middle' as HandlePosition },
                 { x: shape.x + shape.width, y: shape.y, position: 'top-right' as HandlePosition },
-                { x: shape.x + shape.width, y: shape.y + shape.height/2, position: 'middle-right' as HandlePosition },
+                { x: shape.x + shape.width, y: shape.y + shape.height / 2, position: 'middle-right' as HandlePosition },
                 { x: shape.x + shape.width, y: shape.y + shape.height, position: 'bottom-right' as HandlePosition },
-                { x: shape.x + shape.width/2, y: shape.y + shape.height, position: 'bottom-middle' as HandlePosition },
+                { x: shape.x + shape.width / 2, y: shape.y + shape.height, position: 'bottom-middle' as HandlePosition },
                 { x: shape.x, y: shape.y + shape.height, position: 'bottom-left' as HandlePosition },
-                { x: shape.x, y: shape.y + shape.height/2, position: 'middle-left' as HandlePosition }
+                { x: shape.x, y: shape.y + shape.height / 2, position: 'middle-left' as HandlePosition }
             ];
-        // Add other shape types later
+        case 'text':
+            // Measure the text width using the provided context
+            const textWidth = ctx.measureText(shape.text).width;
+            return [
+                { x: shape.x, y: shape.y - shape.fontSize, position: 'top-left' as HandlePosition },
+                { x: shape.x + textWidth / 2, y: shape.y - shape.fontSize, position: 'top-middle' as HandlePosition },
+                { x: shape.x + textWidth, y: shape.y - shape.fontSize, position: 'top-right' as HandlePosition },
+                { x: shape.x + textWidth, y: shape.y - shape.fontSize / 2, position: 'middle-right' as HandlePosition },
+                { x: shape.x + textWidth, y: shape.y, position: 'bottom-right' as HandlePosition },
+                { x: shape.x + textWidth / 2, y: shape.y, position: 'bottom-middle' as HandlePosition },
+                { x: shape.x, y: shape.y, position: 'bottom-left' as HandlePosition },
+                { x: shape.x, y: shape.y - shape.fontSize / 2, position: 'middle-left' as HandlePosition }
+            ];
+        case 'image':
+            return [
+                { x: shape.x, y: shape.y, position: 'top-left' as HandlePosition },
+                { x: shape.x + shape.width / 2, y: shape.y, position: 'top-middle' as HandlePosition },
+                { x: shape.x + shape.width, y: shape.y, position: 'top-right' as HandlePosition },
+                { x: shape.x + shape.width, y: shape.y + shape.height / 2, position: 'middle-right' as HandlePosition },
+                { x: shape.x + shape.width, y: shape.y + shape.height, position: 'bottom-right' as HandlePosition },
+                { x: shape.x + shape.width / 2, y: shape.y + shape.height, position: 'bottom-middle' as HandlePosition },
+                { x: shape.x, y: shape.y + shape.height, position: 'bottom-left' as HandlePosition },
+                { x: shape.x, y: shape.y + shape.height / 2, position: 'middle-left' as HandlePosition }
+            ];
         default:
             return [];
     }

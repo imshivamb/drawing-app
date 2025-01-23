@@ -13,6 +13,9 @@ export class CanvasRenderer {
         }
         this.ctx = context;
     }
+    getContext() {
+        return this.ctx;
+    }
 
     clear() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);

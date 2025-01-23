@@ -79,10 +79,23 @@ export interface ImageShape extends BaseShape {
     imageUrl: string;
 }
 
+export interface FreeShape extends BaseShape {
+    type: "free";
+    points: Point[];
+}
+
+export interface EllipseShape extends BaseShape {
+    type: "ellipse";
+    radiusX: number;
+    radiusY: number;
+}
+
 export type Shape = 
   | RectShape 
   | CircleShape 
   | LineShape 
   | ArrowShape 
   | TextShape 
+  | FreeShape
+  | EllipseShape
   | ImageShape;

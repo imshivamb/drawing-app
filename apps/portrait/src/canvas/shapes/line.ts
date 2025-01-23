@@ -1,8 +1,8 @@
-import { LineShape, Point } from '@repo/common/types';
+import { LineShape, ArrowShape, Point } from '@repo/common/types';
 import { ShapeBehavior } from './base';
 
 export class Line implements ShapeBehavior {
-    constructor(private shape: LineShape) {}
+    constructor(protected shape: LineShape | ArrowShape) {}
 
     draw(ctx: CanvasRenderingContext2D): void {
         if (!this.shape.points || this.shape.points.length < 2) return;
@@ -22,12 +22,10 @@ export class Line implements ShapeBehavior {
 
     hitTest(point: Point): boolean {
         if (!this.shape.points || this.shape.points.length < 2) return false;
-
-        // Calculate distance from point to line segment
         const start = this.shape.points[0];
         const end = this.shape.points[1];
         
-        const threshold = 5; // Distance in pixels to consider "hitting" the line
+        const threshold = 5;
         
         return this.getPointDistanceFromLine(point, start, end) <= threshold;
     }
