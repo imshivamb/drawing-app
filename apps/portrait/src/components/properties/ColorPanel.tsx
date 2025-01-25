@@ -10,11 +10,11 @@ const colors = [
 ];
 
 export const ColorPanel = () => {
-  const { selectedShape, updateShape } = useCanvasStore();
+  const { selectedShape, stateManager } = useCanvasStore();
 
   const updateColor = (type: "stroke" | "fill", color: string) => {
-    if (!selectedShape) return;
-    updateShape({
+    if (!selectedShape || !stateManager) return;
+    stateManager.updateShape({
       ...selectedShape,
       [type === "stroke" ? "strokeColor" : "fillColor"]: color,
     });

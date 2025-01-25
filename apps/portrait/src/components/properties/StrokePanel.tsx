@@ -1,7 +1,15 @@
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { Shape } from "@repo/common/types";
 
 export const StrokePanel = () => {
-  const { selectedShape, updateShape } = useCanvasStore();
+  const { selectedShape, stateManager } = useCanvasStore();
+
+  if (!selectedShape || !stateManager) return null;
+
+  const handleUpdate = (key: "strokeWidth" | "opacity", value: number) => {
+    const updatedShape = { ...selectedShape, [key]: value } as Shape;
+    stateManager.updateShape(updatedShape);
+  };
 
   return (
     <div className="space-y-4 mt-4">
@@ -12,13 +20,8 @@ export const StrokePanel = () => {
           min="1"
           max="20"
           className="w-full mt-2"
-          value={selectedShape?.strokeWidth || 1}
-          onChange={(e) =>
-            updateShape({
-              ...selectedShape!,
-              strokeWidth: Number(e.target.value),
-            })
-          }
+          value={selectedShape.strokeWidth}
+          onChange={(e) => handleUpdate("strokeWidth", Number(e.target.value))}
         />
       </div>
       <div>
@@ -29,13 +32,8 @@ export const StrokePanel = () => {
           max="1"
           step="0.1"
           className="w-full mt-2"
-          value={selectedShape?.opacity || 1}
-          onChange={(e) =>
-            updateShape({
-              ...selectedShape!,
-              opacity: Number(e.target.value),
-            })
-          }
+          value={selectedShape.opacity}
+          onChange={(e) => handleUpdate("opacity", Number(e.target.value))}
         />
       </div>
     </div>

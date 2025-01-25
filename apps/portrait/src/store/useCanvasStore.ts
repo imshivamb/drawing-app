@@ -1,66 +1,43 @@
-import { generateId } from '@/canvas/utils/shapes';
 import { Shape, ShapeType } from '@repo/common/types';
 import { create } from 'zustand';
+import { CanvasStateManager } from '@/canvas/core/state';
 
 interface CanvasStore {
+    stateManager: CanvasStateManager | null;
     mode: ShapeType | 'select';
     selectedShape: Shape | null;
     shapes: Shape[];
+    initStateManager: (socket: WebSocket, roomId: string) => void;
     setMode: (mode: ShapeType | 'select') => void;
-    updateShape: (shape: Shape) => void;
-    setSelectedShape: (shape: Shape | null) => void;
-    updateShapes: (shapes: Shape[]) => void;
-    copyShape: () => void;
-    deleteShape: () => void;
-    bringToFront: () => void;
-    sendToBack: () => void;
-   }
-   
-   export const useCanvasStore = create<CanvasStore>((set, get) => ({
+}
+
+export const useCanvasStore = create<CanvasStore>((set) => ({
+    stateManager: null,
     mode: 'select',
     selectedShape: null,
     shapes: [],
-    setMode: (mode) => set({ mode }),
-    updateShape: (shape) => {
-      const { shapes } = get();
-      const newShapes = shapes.map(s => s.id === shape.id ? shape : s);
-      set({ shapes: newShapes });
-    },
-    copyShape: () => {
-      const { selectedShape, shapes } = get();
-      if (!selectedShape) return;
-      
-      const newShape = {
-        ...selectedShape,
-        id: generateId(),
-        x: selectedShape.x + 20,
-        y: selectedShape.y + 20
-      };
-      set({ shapes: [...shapes, newShape] });
-    },
-    deleteShape: () => {
-      const { selectedShape, shapes } = get();
-      if (!selectedShape) return;
-      set({ 
-        shapes: shapes.filter(s => s.id !== selectedShape.id),
-        selectedShape: null 
+    
+    initStateManager: (socket: WebSocket, roomId: string) => {
+      console.log("Creating state manager");
+      const manager = new CanvasStateManager(socket, roomId);
+      manager.subscribe({
+          onShapesChange: (shapes) => {
+              console.log("Shapes updated:", shapes);
+              set({ shapes });
+          },
+          onSelectionChange: (shape) => {
+              console.log("Selection changed:", shape);
+              set({ selectedShape: shape });
+          }
       });
-    },
-    bringToFront: () => {
-      const { selectedShape, shapes } = get();
-      if (!selectedShape) return;
-      const newShapes = shapes.filter(s => s.id !== selectedShape.id);
-      set({ shapes: [...newShapes, selectedShape] });
-    },
-    sendToBack: () => {
-      const { selectedShape, shapes } = get();
-      if (!selectedShape) return;
-      const newShapes = shapes.filter(s => s.id !== selectedShape.id);
-      set({ shapes: [selectedShape, ...newShapes] });
-    },
-    setSelectedShape: (shape: Shape | null) => 
-        set({ selectedShape: shape }),
+      set({ stateManager: manager });
+  },
 
-    updateShapes: (shapes: Shape[]) => 
-        set({ shapes })
-   }));
+    setMode: (mode) => {
+        set({ mode });
+        const { stateManager } = useCanvasStore.getState();
+        if (stateManager) {
+            stateManager.setState({ mode });
+        }
+    }
+}));

@@ -1,9 +1,17 @@
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { TextShape } from "@repo/common/types";
 import { Input } from "@repo/ui/input";
 
 export const TextPanel = () => {
-  const { selectedShape, updateShape } = useCanvasStore();
-  if (selectedShape?.type !== "text") return null;
+  const { selectedShape, stateManager } = useCanvasStore();
+
+  if (!selectedShape || selectedShape.type !== "text" || !stateManager)
+    return null;
+
+  const handleUpdate = (updates: Partial<TextShape>) => {
+    const updatedShape = { ...selectedShape, ...updates } as TextShape;
+    stateManager.updateShape(updatedShape);
+  };
 
   return (
     <div className="space-y-4 mt-4">
@@ -12,12 +20,7 @@ export const TextPanel = () => {
         <Input
           type="number"
           value={selectedShape.fontSize}
-          onChange={(e) =>
-            updateShape({
-              ...selectedShape,
-              fontSize: Number(e.target.value),
-            })
-          }
+          onChange={(e) => handleUpdate({ fontSize: Number(e.target.value) })}
           className="w-full"
         />
       </div>
@@ -25,12 +28,7 @@ export const TextPanel = () => {
         <label>Text</label>
         <Input
           value={selectedShape.text}
-          onChange={(e) =>
-            updateShape({
-              ...selectedShape,
-              text: e.target.value,
-            })
-          }
+          onChange={(e) => handleUpdate({ text: e.target.value })}
           className="w-full"
         />
       </div>

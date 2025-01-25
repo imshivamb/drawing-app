@@ -20,11 +20,13 @@ const tools = [
 ] as const;
 
 export const ShapeTools = () => {
-  const { mode, setMode, setSelectedShape } = useCanvasStore();
+  const { mode, setMode, stateManager } = useCanvasStore();
+
   const handleModeChange = (toolType: ShapeType) => {
     setMode(toolType);
-    setSelectedShape(null);
+    stateManager?.setSelectedShape(null);
   };
+
   return (
     <div className="flex gap-1">
       <button

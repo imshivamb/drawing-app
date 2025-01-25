@@ -3,7 +3,8 @@ import React, { useEffect, useRef } from "react";
 import { Toolbar } from "./toolbar";
 import { PropertiesPanel } from "./properties";
 import { useCanvasStore } from "@/store/useCanvasStore";
-import { initCanvas } from "@/canvas";
+import { CanvasRenderer } from "@/canvas/core/render";
+import { CanvasEventManager } from "@/canvas/core/events";
 
 export const Canvas = ({
   roomId,
@@ -13,27 +14,31 @@ export const Canvas = ({
   socket: WebSocket;
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { mode, updateShapes, setSelectedShape } = useCanvasStore();
+  const { initStateManager, stateManager } = useCanvasStore();
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvasRef.current) return;
+    console.log("Initializing canvas with:", { socket, roomId });
+    initStateManager(socket, roomId);
+  }, [roomId, socket]);
 
-    const init = async () => {
-      const cleanup = await initCanvas(canvas, mode, roomId, socket, {
-        onShapesUpdate: updateShapes,
-        onSelectionChange: setSelectedShape,
-      });
-      return cleanup;
-    };
+  useEffect(() => {
+    if (!canvasRef.current || !stateManager) return;
 
-    const cleanupPromise = init();
+    console.log("Setting up canvas managers");
 
-    // Cleanup on unmount
+    const renderer = new CanvasRenderer(canvasRef.current);
+    const eventManager = new CanvasEventManager(
+      canvasRef.current,
+      stateManager,
+      renderer
+    );
+
     return () => {
-      cleanupPromise.then((cleanup) => cleanup?.());
+      console.log("Cleaning up canvas managers");
+      eventManager.cleanup();
     };
-  }, [mode, roomId, socket]);
+  }, [stateManager]);
 
   return (
     <div className="relative w-full h-full">
