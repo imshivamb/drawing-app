@@ -20,6 +20,7 @@ export const Canvas = ({
     if (!canvasRef.current) return;
     console.log("Initializing canvas with:", { socket, roomId });
     initStateManager(socket, roomId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, socket]);
 
   useEffect(() => {

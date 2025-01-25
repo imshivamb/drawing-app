@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Modal } from "@repo/ui/modal";
-import { createRoom } from "../../services/api";
 import { Input } from "@repo/ui/input";
 import { Button } from "@repo/ui/button";
 

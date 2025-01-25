@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createRoom, fetchRooms } from "../../services/api";
+import { createRoom, fetchRooms } from "../../../services/api";
 import { RoomCard } from "./RoomCard";
 import { CreateRoomModal } from "./CreateRoomModal";
 import { Room } from "@/types";

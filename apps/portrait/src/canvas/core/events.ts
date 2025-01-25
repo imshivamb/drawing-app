@@ -19,6 +19,8 @@ export class CanvasEventManager {
    private viewport: Viewport;
    private grid: Grid;
    private history: HistoryManager;
+   private lastBroadcastTime: number = 0;
+   private broadcastDebounceTime = 100;
 
    constructor(
        private canvas: HTMLCanvasElement,
@@ -56,13 +58,13 @@ export class CanvasEventManager {
     };
 }
 
-   private handleMouseDown = (e: MouseEvent) => {
-       const point = this.getEventPoint(e);
-       const snappedPoint = this.grid.snapPoint(point);
-       const state = this.stateManager.getState();
-       const ctx = this.renderer.getContext();
+private handleMouseDown = (e: MouseEvent) => {
+    const point = this.getEventPoint(e);
+    const snappedPoint = this.grid.snapPoint(point);
+    const state = this.stateManager.getState();
+    const ctx = this.renderer.getContext();
 
-       if (state.mode === 'free') {
+    if (state.mode === 'free') {
         state.isDrawing = true;
         const initialShape = {
             id: generateId(),
@@ -76,58 +78,61 @@ export class CanvasEventManager {
             fillColor: 'transparent'
         };
         this.stateManager.setSelectedShape(initialShape);
+        if (!state.isDrawing) {
+            this.stateManager.broadcastStart(initialShape);
+        }
         this.stateManager.addShape(initialShape);
         this.history.pushState(state.shapes, initialShape.id);
         return;
     }
 
-       if (e.button === 1 || (e.button === 0 && e.ctrlKey)) {
-           this.viewport.startPan(e);
-           this.canvas.style.cursor = 'grabbing';
-           return;
-       }
+    if (e.button === 1 || (e.button === 0 && e.ctrlKey)) {
+        this.viewport.startPan(e);
+        this.canvas.style.cursor = 'grabbing';
+        return;
+    }
 
-       if (state.mode === 'select') {
-           if (state.selectedShape) {
-               this.selectedHandle = getResizeHandleAtPoint(snappedPoint, state.selectedShape, ctx);
-               if (this.selectedHandle) {
-                   state.isResizing = true;
-                   this.resizeTool.startResize(state.selectedShape, this.selectedHandle, snappedPoint);
-                   return;
-               }
-           }
+    if (state.mode === 'select') {
+        if (state.selectedShape) {
+            this.selectedHandle = getResizeHandleAtPoint(snappedPoint, state.selectedShape, ctx);
+            if (this.selectedHandle) {
+                state.isResizing = true;
+                this.resizeTool.startResize(state.selectedShape, this.selectedHandle, snappedPoint);
+                return;
+            }
+        }
 
-           // Check for shape selection
-           const clickedShape = state.shapes.find(shape => isPointInShape(snappedPoint, shape));
-           state.shapes.forEach(shape => shape.selected = false);
-           
-           if (clickedShape) {
-               clickedShape.selected = true;
-               state.selectedShape = clickedShape;
-               state.isDragging = true;
-           } else {
-               state.selectedShape = null;
-           }
-       } else {
-           state.isDrawing = true;
-           this.startX = snappedPoint.x;
-           this.startY = snappedPoint.y;
-           
-           const initialShape = this.createInitialShape(state.mode, snappedPoint);
-           if (initialShape) {
-               this.stateManager.setSelectedShape(initialShape);
-               this.stateManager.addShape(initialShape);
-               this.history.pushState(state.shapes, initialShape.id);
-           }
-       }
+        const clickedShape = state.shapes.find(shape => isPointInShape(snappedPoint, shape));
+        state.shapes.forEach(shape => shape.selected = false);
+        
+        if (clickedShape) {
+            clickedShape.selected = true;
+            state.selectedShape = clickedShape;
+            state.isDragging = true;
+        } else {
+            state.selectedShape = null;
+        }
+    } else {
+        state.isDrawing = true;
+        this.startX = snappedPoint.x;
+        this.startY = snappedPoint.y;
+        
+        const initialShape = this.createInitialShape(state.mode, snappedPoint);
+        if (initialShape) {
+            this.stateManager.setSelectedShape(initialShape);
+            this.stateManager.broadcastStart(initialShape);
+            this.stateManager.addShape(initialShape);
+            this.history.pushState(state.shapes, initialShape.id);
+        }
+    }
 
-       if (e.altKey && state.selectedShape) {
-           state.isRotating = true;
-           this.rotationStartPoint = snappedPoint;
-       }
+    if (e.altKey && state.selectedShape) {
+        state.isRotating = true;
+        this.rotationStartPoint = snappedPoint;
+    }
 
-       this.renderer.render(state.shapes);
-   };
+    this.renderer.render(state.shapes);
+};
 
    private createInitialShape(mode: string, point: Point): Shape | null {
        const baseShape = {
@@ -158,11 +163,22 @@ export class CanvasEventManager {
    }
 
    private handleMouseMove = (e: MouseEvent) => {
-       const point = this.getEventPoint(e);
-       const snappedPoint = this.grid.snapPoint(point);
-       const state = this.stateManager.getState();
+    const point = this.getEventPoint(e);
+    const snappedPoint = this.grid.snapPoint(point);
+    const state = this.stateManager.getState();
 
-       if (state.isDrawing && state.selectedShape?.type === 'free') {
+    // Only broadcast if actively drawing/modifying
+    if ((state.isDrawing || state.isDragging || state.isResizing) && 
+        state.selectedShape &&
+        state.selectedShape.type !== 'free') {
+        const now = Date.now();
+        if (now - this.lastBroadcastTime > this.broadcastDebounceTime) {
+            this.stateManager.broadcastMove(state.selectedShape);
+            this.lastBroadcastTime = now;
+        }
+    }
+
+    if (state.isDrawing && state.selectedShape?.type === 'free') {
         if (!state.selectedShape.points) {
             state.selectedShape.points = [];
         }
@@ -172,42 +188,42 @@ export class CanvasEventManager {
         return;
     }
 
-       if (state.mode === 'select' && state.selectedShape) {
-           const handle = getResizeHandleAtPoint(snappedPoint, state.selectedShape, this.renderer.getContext());
-           this.canvas.style.cursor = handle ? 
-               getResizeCursor(handle) : 
-               isPointInShape(snappedPoint, state.selectedShape) ? 'move' : 'default';
-       }
+    if (state.mode === 'select' && state.selectedShape) {
+        const handle = getResizeHandleAtPoint(snappedPoint, state.selectedShape, this.renderer.getContext());
+        this.canvas.style.cursor = handle ? 
+            getResizeCursor(handle) : 
+            isPointInShape(snappedPoint, state.selectedShape) ? 'move' : 'default';
+    }
 
-       if (this.viewport.isDragging) {
-           this.viewport.handlePanMove(e);
-           this.renderer.render(state.shapes);
-           return;
-       }
+    if (this.viewport.isDragging) {
+        this.viewport.handlePanMove(e);
+        this.renderer.render(state.shapes);
+        return;
+    }
 
-       if (state.isRotating && state.selectedShape && this.rotationStartPoint) {
-           const center = this.transformTool.getShapeCenter(state.selectedShape);
-           const angle = this.transformTool.getRotationAngle(center, this.rotationStartPoint, snappedPoint);
-           const updatedShape = this.transformTool.rotateShape(state.selectedShape, center, angle);
-           this.stateManager.updateShape(updatedShape);
-           this.rotationStartPoint = snappedPoint;
-       } else if (state.isResizing && state.selectedShape) {
-           const updatedShape = this.resizeTool.resize(state.selectedShape, snappedPoint, e.shiftKey);
-           this.stateManager.updateShape(updatedShape);
-       } else if (state.isDragging && state.selectedShape) {
-           const dx = snappedPoint.x - this.startX;
-           const dy = snappedPoint.y - this.startY;
-           state.selectedShape.x += dx;
-           state.selectedShape.y += dy;
-           this.startX = snappedPoint.x;
-           this.startY = snappedPoint.y;
-           this.stateManager.updateShape(state.selectedShape);
-       } else if (state.isDrawing && state.selectedShape) {
-           this.handleShapeDrawing(state.selectedShape, snappedPoint, e.shiftKey);
-       }
+    if (state.isRotating && state.selectedShape && this.rotationStartPoint) {
+        const center = this.transformTool.getShapeCenter(state.selectedShape);
+        const angle = this.transformTool.getRotationAngle(center, this.rotationStartPoint, snappedPoint);
+        const updatedShape = this.transformTool.rotateShape(state.selectedShape, center, angle);
+        this.stateManager.updateShape(updatedShape);
+        this.rotationStartPoint = snappedPoint;
+    } else if (state.isResizing && state.selectedShape) {
+        const updatedShape = this.resizeTool.resize(state.selectedShape, snappedPoint, e.shiftKey);
+        this.stateManager.updateShape(updatedShape);
+    } else if (state.isDragging && state.selectedShape) {
+        const dx = snappedPoint.x - this.startX;
+        const dy = snappedPoint.y - this.startY;
+        state.selectedShape.x += dx;
+        state.selectedShape.y += dy;
+        this.startX = snappedPoint.x;
+        this.startY = snappedPoint.y;
+        this.stateManager.updateShape(state.selectedShape);
+    } else if (state.isDrawing && state.selectedShape) {
+        this.handleShapeDrawing(state.selectedShape, snappedPoint, e.shiftKey);
+    }
 
-       this.renderer.render(state.shapes);
-   };
+    this.renderer.render(state.shapes);
+};
 
    private handleShapeDrawing(shape: Shape, point: Point, preserveAspectRatio: boolean) {
        const dx = point.x - this.startX;
@@ -259,23 +275,23 @@ export class CanvasEventManager {
    }
 
    private handleMouseUp = () => {
-       const state = this.stateManager.getState();
-       
-       if (state.isDrawing || state.isDragging || state.isResizing) {
-           this.history.pushState(state.shapes, state.selectedShape?.id || null);
-       }
-       
-       state.isDrawing = false;
-       state.isDragging = false;
-       state.isResizing = false;
-       state.isRotating = false;
-       this.rotationStartPoint = null;
-       this.selectedHandle = null;
-       this.viewport.endPan();
-       this.canvas.style.cursor = 'default';
+    const state = this.stateManager.getState();
+    if (state.selectedShape && (state.isDrawing || state.isDragging || state.isResizing)) {
+        this.stateManager.broadcastEnd(state.selectedShape);
+        this.history.pushState(state.shapes, state.selectedShape?.id || null);
+    }
+    
+    state.isDrawing = false;
+    state.isDragging = false;
+    state.isResizing = false;
+    state.isRotating = false;
+    this.rotationStartPoint = null;
+    this.selectedHandle = null;
+    this.viewport.endPan();
+    this.canvas.style.cursor = 'default';
 
-       this.renderer.render(state.shapes);
-   };
+    this.renderer.render(state.shapes);
+};
 
    private handleKeyDown = (e: KeyboardEvent) => {
        const state = this.stateManager.getState();

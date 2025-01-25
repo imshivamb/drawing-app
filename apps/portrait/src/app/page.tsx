@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import Link from "next/link";
+import Image from "next/image";
 
 function App() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -123,7 +124,7 @@ function App() {
             <div className="relative">
               <div className="absolute -inset-4 bg-purple-100 rounded-2xl transform rotate-2 animate-pulse"></div>
               <div className="absolute -inset-4 bg-purple-50 rounded-2xl transform -rotate-2 animate-pulse animation-delay-500"></div>
-              <img
+              <Image
                 src="https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80"
                 alt="Collaboration Preview"
                 className="relative rounded-2xl shadow-2xl w-full transform hover:scale-[1.02] transition-transform duration-300"
@@ -272,7 +273,7 @@ function App() {
                   ))}
                 </div>
                 <p className="text-gray-700 mb-6 italic">
-                  "{testimonial.quote}"
+                  &quot;{testimonial.quote}&quot;
                 </p>
                 <div>
                   <div className="font-semibold text-gray-900">

@@ -49,6 +49,20 @@ export const fetchRooms = async () => {
       throw error;
     }
   };
+
+  export const fetchRoomChats = async (roomId: string) => {
+    try {
+      const response = await axios.get(`${HTTP_BACKEND}/room/chats/${roomId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data.messages;
+    } catch (error) {
+      console.error("Failed to fetch chats:", error);
+      throw error;
+    }
+  };
   
   // Join a room
   export const joinRoom = async (slug: string) => {
