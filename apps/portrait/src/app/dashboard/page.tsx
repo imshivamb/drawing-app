@@ -1,6 +1,7 @@
 import React from "react";
 import { Header } from "./_components/Header";
 import { RoomList } from "./_components/RoomList";
+export const dynamic = "force-dynamic";
 
 const DashboardPage = () => {
   return (

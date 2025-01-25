@@ -71,14 +71,16 @@ export default function AuthForm({ isLogin }: AuthFormProps) {
       });
       setErrors({});
       router.push("/dashboard");
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        setErrors({ email: error.response.data.message });
-      } else {
+    } catch (error: unknown) {
+      if (error instanceof Error) {
         setErrors({
           email: isLogin
-            ? "Login failed. Please try again."
-            : "Registration failed. Please try again.",
+            ? `Login failed: ${error.message}`
+            : `Registration failed: ${error.message}`,
+        });
+      } else {
+        setErrors({
+          email: "An unexpected error occurred. Please try again.",
         });
       }
     } finally {
@@ -155,7 +157,7 @@ export default function AuthForm({ isLogin }: AuthFormProps) {
         {isLogin ? "Don't have an account? " : "Already have an account? "}
         <Link
           href={isLogin ? "/register" : "/login"}
-          className="text-blue-600 hover:underline"
+          className="dark:text-white text-purple-600 hover:underline"
         >
           {isLogin ? "Register" : "Log in"}
         </Link>

@@ -112,19 +112,23 @@ function App() {
                     <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
-                <Button
-                  size="lg"
-                  className="border-2 border-purple-200 bg-white !text-purple-600 px-8 py-4 rounded-xl font-medium hover:border-purple-600 transition-all hover:scale-105 shadow-lg hover:shadow-purple-100 flex items-center justify-center group"
-                >
-                  Watch Demo
-                  <Play className="ml-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-                </Button>
+                <Link href="/login">
+                  <Button
+                    size="lg"
+                    className="border-2 border-purple-200 !bg-white !text-purple-600 px-8 py-4 rounded-xl font-medium hover:border-purple-600 transition-all hover:scale-105 shadow-lg hover:shadow-purple-100 flex items-center justify-center group"
+                  >
+                    Watch Demo
+                    <Play className="ml-2 h-5 w-5 group-hover:scale-110 transition-transform" />
+                  </Button>
+                </Link>
               </div>
             </div>
             <div className="relative">
               <div className="absolute -inset-4 bg-purple-100 rounded-2xl transform rotate-2 animate-pulse"></div>
               <div className="absolute -inset-4 bg-purple-50 rounded-2xl transform -rotate-2 animate-pulse animation-delay-500"></div>
               <Image
+                width={600}
+                height={450}
                 src="https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80"
                 alt="Collaboration Preview"
                 className="relative rounded-2xl shadow-2xl w-full transform hover:scale-[1.02] transition-transform duration-300"
@@ -306,9 +310,6 @@ function App() {
               <button className="bg-white text-purple-600 px-8 py-4 rounded-xl font-medium hover:bg-purple-50 transition-all hover:scale-105 shadow-lg group">
                 Get Started Free
                 <ChevronRight className="ml-2 h-5 w-5 inline group-hover:translate-x-1 transition-transform" />
-              </button>
-              <button className="border-2 border-white text-white px-8 py-4 rounded-xl font-medium hover:bg-white/10 transition-all hover:scale-105">
-                Contact Sales
               </button>
             </div>
           </div>

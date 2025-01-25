@@ -1,3 +1,4 @@
+'use client';
 import { Shape, ShapeType } from '@repo/common/types';
 import { CanvasStateManager } from './core/state';
 import { CanvasRenderer } from './core/render';
