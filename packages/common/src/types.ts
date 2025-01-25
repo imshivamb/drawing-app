@@ -107,3 +107,51 @@ export type Shape =
 //     userId: string;
 //     users: User[];
 //    }
+
+export interface User {
+    id: string;
+    email: string;
+    password: string;
+    name: string;
+    photo?: string;
+    rooms: Room[];
+    members: RoomMember[];
+    createdAt: Date;
+    updatedAt: Date;
+    chats: Chat[];
+  }
+  
+  export interface Room {
+    id: string;
+    slug: string;
+    adminId: string;
+    isPrivate: boolean;
+    createdAt: Date;
+    chats: Chat[];
+    admin: User;
+    members: RoomMember[];
+    updatedAt: Date;
+  }
+  
+  export interface RoomMember {
+    id: string;
+    roomId: string;
+    userId: string;
+    role: "admin" | "editor" | "viewer";
+    room: Room;
+    user: User;
+    joinedAt: Date;
+  }
+  
+  export interface Chat {
+    id: number;
+    roomId: string;
+    message: string;
+    userId: string;
+    room: Room;
+    user: User;
+  }
+
+  export interface RoomWithMembers extends Room {
+    members: (RoomMember & { user: User })[];
+  }

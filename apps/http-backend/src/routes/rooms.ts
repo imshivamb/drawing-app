@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import express from "express";
 import prisma from "@repo/database/db";
 import { CreateRoomSchema } from "@repo/common/schema";
+import { RoomWithMembers, RoomMember, Room, User } from '@repo/common/types'
 import { middleware } from "../middleware/auth.js";
 
 const router: Router = express.Router();
@@ -37,11 +38,11 @@ router.post("/", middleware, async (req: Request, res: Response) => {
           },
         },
       },
-    });
+    }) as RoomWithMembers;
 
     const roomWithUsers = {
       ...room,
-      users: room.members.map((member) => member.user),
+      users: room.members.map((member: RoomMember & { user: User }) => member.user),
     };
 
     res.json(roomWithUsers);
@@ -62,11 +63,11 @@ router.get("/", middleware, async (req: Request, res: Response) => {
           },
         },
       },
-    });
+    }) as RoomWithMembers[];
 
-    const roomsWithUsers = rooms.map((room) => ({
+    const roomsWithUsers = rooms.map((room: RoomWithMembers) => ({
       ...room,
-      users: room.members.map((member) => member.user),
+      users: room.members.map((member: RoomMember & { user: User }) => member.user),
     }));
 
     res.json(roomsWithUsers);
@@ -74,7 +75,7 @@ router.get("/", middleware, async (req: Request, res: Response) => {
     console.error("Error fetching rooms:", error);
     res.status(500).json({ message: "Error fetching rooms" });
   }
-});
+}) ;
 
 // Fetch a single room by slug
 router.get("/:slug", middleware, async (req: Request, res: Response) => {
@@ -90,7 +91,7 @@ router.get("/:slug", middleware, async (req: Request, res: Response) => {
           },
         },
       },
-    });
+    }) as RoomWithMembers | null;
 
     if (!room) {
       res.status(404).json({ message: "Room not found" });
@@ -98,7 +99,7 @@ router.get("/:slug", middleware, async (req: Request, res: Response) => {
     }
     const roomWithUsers = {
       ...room,
-      users: room.members.map((member) => member.user),
+      users: room.members.map((member: RoomMember & { user: User }) => member.user),
     };
 
     res.json({ room: roomWithUsers });
